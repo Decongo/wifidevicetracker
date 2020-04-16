@@ -4,12 +4,7 @@
       <template v-slot:prepend>
         <v-list>
           <v-list-item @click="$router.push('/')" style="cursor: pointer">
-            <v-list-item-avatar>
-              <v-img
-                src="https://media.licdn.com/dms/image/C560BAQHQlSTXaVdWrg/company-logo_200_200/0?e=2159024400&v=beta&t=5SfNMkECFR8W1Q0x8lNadENrjnKhR08o-_LgRwbGvtA"
-              ></v-img>
-            </v-list-item-avatar>
-            <v-list-item-title>Jolt Dash</v-list-item-title>
+            <v-list-item-title>Analytics Dash</v-list-item-title>
           </v-list-item>
 
           <v-menu offset-y>
