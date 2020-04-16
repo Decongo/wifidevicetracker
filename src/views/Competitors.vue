@@ -41,11 +41,12 @@
           fixed-tabs
           @change="getStoreData()"
           >
+          <v-tab>Daily</v-tab>
           <v-tab>Weekly</v-tab>
           <v-tab>All time</v-tab>
         </v-tabs>
         <v-date-picker 
-          v-if="tab===0" 
+          v-if="tab!==2" 
           v-model="date" 
           :max="today" 
           @input="getStoreData()" 
@@ -53,6 +54,16 @@
         ></v-date-picker>
       </v-col>
     </v-row>
+    <v-card v-if="mode==='daily'" class="pa-5">
+      <GChart
+        :settings="{packages: ['bar']}"    
+        :data="dataTable"
+        :options="chartOptions"
+        :createChart="(el, google) => new google.charts.Bar(el)"
+        @ready="onChartReady"
+        width="90%"
+      />
+    </v-card>
   </v-container>
 </template>
 
@@ -106,7 +117,8 @@ export default {
       return stores;
     },
     mode() {
-      return this.tab ? "to_date" : "weekly";
+      const modes = ["daily", "weekly", "to-date"];
+      return modes[this.tab];
     },
     selectedQuery() {
       let query = {};
@@ -163,6 +175,10 @@ export default {
       this.today = date
     },
     async getStoreData() {
+      if (this.mode === 'daily') {
+        this.populateDataTable();
+      }
+
       const basePrefix = `athena-query-logs/${this.dataStore.currentStoreName}`;
 
       const crossoverPrefix = `${basePrefix}/crossover/with_${this.selectedStore.storeName}/${this.mode}/${this.date}/`;
@@ -171,10 +187,10 @@ export default {
       let distinctPrefix = "";
       if (this.mode === "to_date") {
         distinctPrefix = `${basePrefix}/crossover/total_distinct_visitors/${this.date}/`
-      } else {
+      } else if (this.mode === "weekly") {
         distinctPrefix = `${basePrefix}/weekly_total_unique/${this.date}/`
       }
-      this.fetchData(distinctPrefix, "totalDistinct")
+      if (distinctPrefix) this.fetchData(distinctPrefix, "totalDistinct")
     },
     fetchData(prefix, resultLocation) {
       const base = "https://s3.us-east-2.amazonaws.com/jolt.capstone/";
@@ -206,6 +222,39 @@ export default {
         .catch((error) => {
           this.dataTable = [];
         })
+    },
+
+    populateDataTable() {
+      this.dataTable = [["string", "Element"]];
+      for (let i = 2; i < 9; ++i) {
+        let prefix = `athena-query-logs/heritage_15/crossover/with_heritage_16/daily/2020-04-0${i}/`
+
+        const base = "https://s3.us-east-2.amazonaws.com/jolt.capstone/";
+      
+        this.axios.get(base+"?prefix="+prefix)
+        .then((response) => {
+          var parser = new DOMParser();
+          let data = parser.parseFromString(response.data, "text/xml");
+          let key = data.getElementsByTagName("Key")[0].innerHTML
+          return key
+        })
+        .then((key) => {
+          this.$papa.parse(base+key, {
+            download: true,
+            dynamicTyping: true,
+            complete: (results) => {
+              results.data.pop()
+              this.dataTable.push([`2020-04-0${i}`, results.data[1][0]]);
+            }
+          })
+          .catch((error) => {
+              // this.dataTable = [];
+          })
+        })
+        .catch((error) => {
+          // this.dataTable = [];
+        })
+      }
     }
   }
 }
